@@ -4,10 +4,12 @@ from PyQt5.QtGui import QPainter, QColor, QFont
 import sys, random
 
 #========CONSTANTS==========#
-
+TITLE_OF_PROGRAM = "PyQtTetrix"
 TILE_SIZE = 30
 WELL_X = 10
 WELL_Y = 20
+WINDOW_WIDTH = WELL_X * TILE_SIZE + 180
+WINDOW_HEIGHT = WELL_Y * TILE_SIZE
 NUM_BLOCKS_IN_PIECE = 4
 ScoreTable = [ 300, 500, 700, 1500 ]
 
@@ -21,9 +23,9 @@ class Window( QMainWindow ):
     def init_UI( self ):
         self.canvas = Canvas( self )
         self.setCentralWidget( self.canvas )
-        self.setFixedSize(480, 600)
+        self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.centralize()
-        self.setWindowTitle("PyQtTetrix")
+        self.setWindowTitle(TITLE_OF_PROGRAM)
         self.show()
 
 
@@ -45,8 +47,8 @@ class Canvas( QFrame ):
         self.num_of_removed_lines = 0
         self.level = 1
         self.well = Well( WELL_X, WELL_Y + 1, TILE_SIZE )
-        self.active_tetramino = Tetramino(4, 0, random.choice( range(7)))
-        self.next_tetramino = Tetramino(11, 1, random.choice( range(7)))
+        self.active_tetramino = Tetramino(4, 0, random.choice( range(len(Shape.table))))
+        self.next_tetramino = Tetramino(11, 1, random.choice( range(len(Shape.table))))
         self.timer = QBasicTimer()
         self.timer.start(1000.0 / self.level , self)
         
@@ -57,8 +59,10 @@ class Canvas( QFrame ):
         self.num_of_removed_lines = 0
         self.level = 1
         self.well.clear_grid()
-        self.active_tetramino = Tetramino(4, 0, random.choice( range(7)))
-        self.next_tetramino = Tetramino(11, 2, random.choice( range(7)))
+        self.active_tetramino = Tetramino(4, 0, random.choice(
+            range(len(Shape.table))))
+        self.next_tetramino = Tetramino(11, 2, random.choice(
+            range(len(Shape.table))))
         self.timer.start(1000.0 / self.level , self)
         pass
 
@@ -93,7 +97,8 @@ class Canvas( QFrame ):
                 self.__unite_( self.active_tetramino )
                 self.next_tetramino.set_pos(4, 0)
                 self.active_tetramino = self.next_tetramino
-                self.next_tetramino = Tetramino(11, 2, random.choice(range(7)))
+                self.next_tetramino = Tetramino(11, 2, random.choice(
+                    range(len(Shape.table))))
                 if self.__is_colliding_wall_( self.active_tetramino ):
                     self.is_game_over = True
                     self.timer.stop()
@@ -243,16 +248,9 @@ class Well():
         
 
     def draw( self, painter ):
-        #draw lines
-        """
-        painter.setPen( QColor(255,0,0) )
-        for y in range( self.height ):
-            painter.drawLine(0, y * self.tile_size, self.width * self.tile_size, y * self.tile_size )
-            """
-        #draw tiles
         for y in range( self.height - 1):
             for x in range( self.width ):
-                color = QColor( 160,160,160 ) if self.grid[y][x] else QColor( 0,0,0 )
+                color = QColor(160,160,160) if self.grid[y][x] else QColor(0,0,0)
                 painter.fillRect(x * self.tile_size + 1, y * self.tile_size + 1,
                                  self.tile_size - 1, self.tile_size - 1, color)    
 
