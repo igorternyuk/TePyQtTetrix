@@ -9,6 +9,7 @@ TILE_SIZE = 30
 WELL_X = 10
 WELL_Y = 20
 NUM_BLOCKS_IN_PIECE = 4
+ScoreTable = [ 300, 500, 700, 1500 ]
 
 class Window( QMainWindow ):
     
@@ -20,8 +21,7 @@ class Window( QMainWindow ):
     def init_UI( self ):
         self.canvas = Canvas( self )
         self.setCentralWidget( self.canvas )
-        self.statusbar = self.statusBar()
-        self.setFixedSize(480, 680)
+        self.setFixedSize(480, 600)
         self.centralize()
         self.setWindowTitle("PyQtTetrix")
         self.show()
@@ -36,7 +36,7 @@ class Window( QMainWindow ):
 
 
 class Canvas( QFrame ):
-    #ScoreTable = ( ONE_LINE = 300, TWO_LINES = 500, THREE_LINES = 700, FOUR_LINES = 1500 )
+
     def __init__( self, parent = None ):
         super().__init__( parent )
         self.setFocusPolicy(Qt.StrongFocus)
@@ -46,7 +46,7 @@ class Canvas( QFrame ):
         self.level = 1
         self.well = Well( WELL_X, WELL_Y + 1, TILE_SIZE )
         self.active_tetramino = Tetramino(4, 0, random.choice( range(7)))
-        self.next_tetramino = Tetramino(11, 2, random.choice( range(7)))
+        self.next_tetramino = Tetramino(11, 1, random.choice( range(7)))
         self.timer = QBasicTimer()
         self.timer.start(1000.0 / self.level , self)
         
@@ -94,15 +94,20 @@ class Canvas( QFrame ):
                 self.next_tetramino.set_pos(4, 0)
                 self.active_tetramino = self.next_tetramino
                 self.next_tetramino = Tetramino(11, 2, random.choice(range(7)))
-                
+                if self.__is_colliding_wall_( self.active_tetramino ):
+                    self.is_game_over = True
+                    self.timer.stop()
                 self.update()
             else:
                 self.active_tetramino.step_down()
                 self.update()
                 num_lines = self.well.remove_filled_lines()
                 if num_lines > 0:
-                    print("num_lines = ", num_lines)
-                
+                    self.score += ScoreTable[ num_lines - 1 ]
+                    self.num_of_removed_lines += num_lines
+                    if self.score > self.level * 500:
+                        self.level += 1
+                        self.timer.start(1000.0 / self.level , self )                
         else:
             super( Canvas, self ).timerEvent( event )
 
@@ -142,20 +147,44 @@ class Canvas( QFrame ):
             self.start_new_game()
         elif key == Qt.Key_P:
             if not self.timer.isActive():
-                self.timer.start(1000.0 / self.level , self )
+                self.timer.start(2000.0 / self.level , self )
             else:
                 self.timer.stop()
+            self.update()
 
 
     def paintEvent(self, event):
         painter = QPainter( self )
         self.well.draw( painter )
-        self.active_tetramino.draw( painter )
+        if not self.is_game_over:
+            self.active_tetramino.draw( painter )
         self.next_tetramino.draw( painter )
+        self.__draw_game_info_( painter )
+
+
+    def __draw_game_info_( self, painter ):
         font = QFont ( "Tahoma" )
         font.setPointSize( 14 )
         painter.setFont( font )
+        painter.setPen(QColor(0,0,255))
         painter.drawText(310, 20, "Next piece:")
+        painter.setPen(QColor(0,127,0))
+        painter.drawText(310, 180, "Score:" + str(self.score))
+        painter.setPen(QColor(0,148,255))
+        painter.drawText(310, 230, "Lines:" + str(self.num_of_removed_lines))
+        status = "Status: "
+        if self.is_game_over:
+            painter.setPen(QColor(255,0,0))
+            status += "GAME OVER"
+        else:
+            if self.timer.isActive():
+                painter.setPen(QColor(0,127,0))
+                status += "PLAYING"
+            else:
+                painter.setPen(QColor(255,255,0))
+                status += "PAUSED"
+        painter.drawText(310, 290, status )
+        pass
                 
 
 class Well():
